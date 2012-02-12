@@ -572,7 +572,7 @@ static int new_inode_init(struct inode *inode, struct inode *dir, int mode)
 	return 0;
 }
 
-static int reiserfs_create(struct inode *dir, struct dentry *dentry, int mode,
+static int reiserfs_create(struct inode *dir, struct dentry *dentry, umode_t mode,
 			   struct nameidata *nd)
 {
 	int retval;
@@ -643,7 +643,7 @@ static int reiserfs_create(struct inode *dir, struct dentry *dentry, int mode,
 	return retval;
 }
 
-static int reiserfs_mknod(struct inode *dir, struct dentry *dentry, int mode,
+static int reiserfs_mknod(struct inode *dir, struct dentry *dentry, umode_t mode,
 			  dev_t rdev)
 {
 	int retval;
@@ -1529,6 +1529,7 @@ const struct inode_operations reiserfs_dir_inode_operations = {
 	.listxattr = reiserfs_listxattr,
 	.removexattr = reiserfs_removexattr,
 	.permission = reiserfs_permission,
+	.check_acl = reiserfs_check_acl,
 };
 
 /*
@@ -1545,6 +1546,7 @@ const struct inode_operations reiserfs_symlink_inode_operations = {
 	.listxattr = reiserfs_listxattr,
 	.removexattr = reiserfs_removexattr,
 	.permission = reiserfs_permission,
+	.check_acl = reiserfs_check_acl,
 
 };
 
@@ -1558,5 +1560,5 @@ const struct inode_operations reiserfs_special_inode_operations = {
 	.listxattr = reiserfs_listxattr,
 	.removexattr = reiserfs_removexattr,
 	.permission = reiserfs_permission,
-
+	.check_acl = reiserfs_check_acl,
 };

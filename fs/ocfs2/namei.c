@@ -209,7 +209,7 @@ static struct inode *ocfs2_get_init_inode(struct inode *dir, int mode)
 
 static int ocfs2_mknod(struct inode *dir,
 		       struct dentry *dentry,
-		       int mode,
+		       umode_t mode,
 		       dev_t dev)
 {
 	int status = 0;
@@ -619,7 +619,7 @@ static int ocfs2_mkdir(struct inode *dir,
 
 static int ocfs2_create(struct inode *dir,
 			struct dentry *dentry,
-			int mode,
+			umode_t mode,
 			struct nameidata *nd)
 {
 	int ret;
@@ -2498,4 +2498,5 @@ const struct inode_operations ocfs2_dir_iops = {
 	.listxattr	= ocfs2_listxattr,
 	.removexattr	= generic_removexattr,
 	.fiemap         = ocfs2_fiemap,
+	.check_acl	= ocfs2_check_acl,
 };

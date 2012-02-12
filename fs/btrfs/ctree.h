@@ -2602,7 +2602,7 @@ int btrfs_defrag_file(struct inode *inode, struct file *file,
 int btrfs_add_inode_defrag(struct btrfs_trans_handle *trans,
 			   struct inode *inode);
 int btrfs_run_defrag_inodes(struct btrfs_fs_info *fs_info);
-int btrfs_sync_file(struct file *file, int datasync);
+int btrfs_sync_file(struct file *file, loff_t start, loff_t end, int datasync);
 int btrfs_drop_extent_cache(struct inode *inode, u64 start, u64 end,
 			    int skip_pinned);
 extern const struct file_operations btrfs_file_operations;
@@ -2642,7 +2642,7 @@ do {								\
 
 /* acl.c */
 #ifdef CONFIG_BTRFS_FS_POSIX_ACL
-int btrfs_check_acl(struct inode *inode, int mask, unsigned int flags);
+int btrfs_check_acl(struct inode *inode, int mask);
 #else
 #define btrfs_check_acl NULL
 #endif

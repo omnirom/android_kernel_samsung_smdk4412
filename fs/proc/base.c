@@ -1072,14 +1072,10 @@ out:
 	return err < 0 ? err : count;
 }
 
-static int oom_adjust_permission(struct inode *inode, int mask,
-				 unsigned int flags)
+static int oom_adjust_permission(struct inode *inode, int mask)
 {
 	uid_t uid;
 	struct task_struct *p;
-
-	if (flags & IPERM_FLAG_RCU)
-		return -ECHILD;
 
 	p = get_proc_task(inode);
 	if(p) {
@@ -1098,7 +1094,7 @@ static int oom_adjust_permission(struct inode *inode, int mask,
 	}
 
 	/* Fall back to default. */
-	return generic_permission(inode, mask, flags, NULL);
+	return generic_permission(inode, mask);
 }
 
 static const struct inode_operations proc_oom_adjust_inode_operations = {
@@ -2165,9 +2161,9 @@ static const struct file_operations proc_fd_operations = {
  * /proc/pid/fd needs a special permission handler so that a process can still
  * access /proc/self/fd after it has executed a setuid().
  */
-static int proc_fd_permission(struct inode *inode, int mask, unsigned int flags)
+static int proc_fd_permission(struct inode *inode, int mask)
 {
-	int rv = generic_permission(inode, mask, flags, NULL);
+	int rv = generic_permission(inode, mask);
 	if (rv == 0)
 		return 0;
 	if (task_pid(current) == proc_pid(inode))
