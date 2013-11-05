@@ -1158,6 +1158,23 @@ void mali_gpu_utilization_handler(struct mali_gpu_utilization_data *data)
 	}
 }
 
+#ifdef CONFIG_CPU_EXYNOS4210
+int mali_dvfs_bottom_lock_push()
+{
+	int prev_status = _mali_osk_atomic_read(&bottomlock_status);
+
+	if (prev_status < 0) {
+		MALI_PRINT(("gpu bottom lock status is not valid for push\n"));
+		return -1;
+	}
+	if (prev_status == 0) {
+                mali_regulator_set_voltage(mali_dvfs[1].vol, mali_dvfs[1].vol);
+                mali_clk_set_rate(mali_dvfs[1].clock, mali_dvfs[1].freq);
+                set_mali_dvfs_current_step(1);
+    }
+	return _mali_osk_atomic_inc_return(&bottomlock_status);
+}
+#else
 int mali_dvfs_bottom_lock_push(int lock_step)
 {
 	int prev_status = _mali_osk_atomic_read(&bottomlock_status);
@@ -1176,6 +1193,7 @@ int mali_dvfs_bottom_lock_push(int lock_step)
 	}
 	return _mali_osk_atomic_inc_return(&bottomlock_status);
 }
+#endif
 
 int mali_dvfs_bottom_lock_pop(void)
 {
