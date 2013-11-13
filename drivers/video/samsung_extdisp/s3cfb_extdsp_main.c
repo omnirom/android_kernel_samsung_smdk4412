@@ -43,7 +43,7 @@
 
 struct s3cfb_extdsp_extdsp_desc		*fbextdsp;
 
-struct s3cfb_extdsp_global *get_extdsp_global(int id)
+inline struct s3cfb_extdsp_global *get_extdsp_global(int id)
 {
 	struct s3cfb_extdsp_global *fbdev;
 
