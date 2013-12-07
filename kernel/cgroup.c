@@ -356,38 +356,33 @@ static struct hlist_head *css_set_hash(struct cgroup_subsys_state *css[])
 
 static void free_css_set_work(struct work_struct *work)
 {
-	struct css_set *cg = container_of(work, struct css_set, work);
-	struct cg_cgroup_link *link;
-	struct cg_cgroup_link *saved_link;
+        struct css_set *cg = container_of(work, struct css_set, work);
+        struct cg_cgroup_link *link;
+        struct cg_cgroup_link *saved_link;
 
-	write_lock(&css_set_lock);
-	list_for_each_entry_safe(link, saved_link, &cg->cg_links,
-				 cg_link_list) {
-		struct cgroup *cgrp = link->cgrp;
-		list_del(&link->cg_link_list);
-		list_del(&link->cgrp_link_list);
+        write_lock(&css_set_lock);
+        list_for_each_entry_safe(link, saved_link, &cg->cg_links,
+                                 cg_link_list) {
+                struct cgroup *cgrp = link->cgrp;
+                list_del(&link->cg_link_list);
+                list_del(&link->cgrp_link_list);
 
-		/*
-		 * We may not be holding cgroup_mutex, and if cgrp->count is
-		 * dropped to 0 the cgroup can be destroyed at any time, hence
-		 * rcu_read_lock is used to keep it alive.
-		 */
-		rcu_read_lock();
-		if (atomic_dec_and_test(&cgrp->count) &&
-		    notify_on_release(cgrp)) {
-			if (taskexit)
-				set_bit(CGRP_RELEASABLE, &cgrp->flags);
+                /*
+                 * We may not be holding cgroup_mutex, and if cgrp->count is
+                 * dropped to 0 the cgroup can be destroyed at any time, hence
+                 * rcu_read_lock is used to keep it alive.
+                 */
+                rcu_read_lock();
+                if (atomic_dec_and_test(&cgrp->count)) {
+                        check_for_release(cgrp);
+                        cgroup_wakeup_rmdir_waiter(cgrp);
+                }
+                rcu_read_unlock();
+                kfree(link);
+        }
+        write_unlock(&css_set_lock);
 
-			check_for_release(cgrp);
-			cgroup_wakeup_rmdir_waiter(cgrp);
-		}
-		rcu_read_unlock();
-
-		kfree(link);
-	}
-	write_unlock(&css_set_lock);
-
-	kfree(cg);
+        kfree(cg);
 }
 
 static void free_css_set_rcu(struct rcu_head *obj)
