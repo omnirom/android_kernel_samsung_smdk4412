@@ -78,12 +78,6 @@
 #define ELVSS_MODE0_MIN_VOLTAGE	62
 #define ELVSS_MODE1_MIN_VOLTAGE	52
 
-#ifdef SMART_DIMMING_DEBUG
-#define smtd_dbg(format, arg...)	printk(format, ##arg)
-#else
-#define smtd_dbg(format, arg...)
-#endif
-
 struct str_elvss {
 	u8 reference;
 	u8 limit;
@@ -94,7 +88,6 @@ struct lcd_info {
 	unsigned int			bl;
 	unsigned int			auto_brightness;
 	unsigned int			acl_enable;
-	unsigned int			siop_enable;
 	unsigned int			current_acl;
 	unsigned int			current_bl;
 	unsigned int			current_elvss;
@@ -499,7 +492,7 @@ static int s6e8ax0_set_acl(struct lcd_info *lcd, u8 force)
 
 	enable = !!level;
 
-	/* if (force || lcd->acl_enable != enable) { */
+	//if (force || lcd->acl_enable != enable) {
 		dev_dbg(&lcd->ld->dev, "acl turn %s\n", enable ? "on" : "off");
 		if (enable)
 			ret = s6e8ax0_write(lcd, SEQ_ACL_ON, ARRAY_SIZE(SEQ_ACL_ON));
@@ -507,13 +500,13 @@ static int s6e8ax0_set_acl(struct lcd_info *lcd, u8 force)
 			ret = s6e8ax0_write(lcd, SEQ_ACL_OFF, ARRAY_SIZE(SEQ_ACL_OFF));
 			goto exit;
 		}
-	/* }
+	//}
 
-	if (force || lcd->current_acl != level) { */
+	//if (force || lcd->current_acl != level) {
 		ret = s6e8ax0_write(lcd, ACL_CUTOFF_TABLE[level], ACL_PARAM_SIZE);
 		lcd->current_acl = level;
 		dev_dbg(&lcd->ld->dev, "current_acl = %d\n", lcd->current_acl);
-	/* } */
+	//}
 
 	if (ret)
 		ret = -EPERM;
@@ -539,16 +532,12 @@ static int s6e8ax0_set_acl(struct lcd_info *lcd, u8 force)
 		break;
 	}
 
-	if (lcd->siop_enable)
-		goto acl_update;
-
 	if (!lcd->acl_enable)
 		level = ACL_STATUS_0P;
 
-acl_update:
 	enable = !!level;
 
-	/* if (force || lcd->acl_enable != enable) { */
+	//if (force || lcd->acl_enable != enable) {
 		dev_dbg(&lcd->ld->dev, "acl turn %s\n", enable ? "on" : "off");
 		if (enable)
 			ret = s6e8ax0_write(lcd, SEQ_ACL_ON, ARRAY_SIZE(SEQ_ACL_ON));
@@ -556,13 +545,13 @@ acl_update:
 			ret = s6e8ax0_write(lcd, SEQ_ACL_OFF, ARRAY_SIZE(SEQ_ACL_OFF));
 			goto exit;
 		}
-	/* }
+	//}
 
-	if (force || lcd->current_acl != level) { */
+	//if (force || lcd->current_acl != level) {
 		ret = s6e8ax0_write(lcd, ACL_CUTOFF_TABLE[level], ACL_PARAM_SIZE);
 		lcd->current_acl = level;
 		dev_dbg(&lcd->ld->dev, "current_acl = %d\n", lcd->current_acl);
-	/* } */
+	//}
 
 	if (ret)
 		ret = -EPERM;
@@ -723,7 +712,10 @@ static u8 get_elvss_value(struct lcd_info *lcd, u8 elvss_level)
 
 static int init_elvss_table(struct lcd_info *lcd)
 {
-	int i, j, ret = 0;
+	int i, ret = 0;
+#ifdef SMART_DIMMING_DEBUG
+	int j;
+#endif
 
 	lcd->elvss_table = kzalloc(ELVSS_STATUS_MAX * sizeof(u8 *), GFP_KERNEL);
 
@@ -745,11 +737,13 @@ static int init_elvss_table(struct lcd_info *lcd)
 		lcd->elvss_table[i][2] = get_elvss_value(lcd, i);
 	}
 
+#ifdef SMART_DIMMING_DEBUG
 	for (i = 0; i < ELVSS_STATUS_MAX; i++) {
 		for (j = 0; j < ELVSS_PARAM_SIZE; j++)
-			smtd_dbg("0x%02x, ", lcd->elvss_table[i][j]);
-		smtd_dbg("\n");
+			printk("0x%02x, ", lcd->elvss_table[i][j]);
+		printk("\n");
 	}
+#endif
 
 	return 0;
 
@@ -766,7 +760,7 @@ err_alloc_elvss_table:
 #ifdef CONFIG_AID_DIMMING
 static int init_gamma_table(struct lcd_info *lcd)
 {
-	int i, j, ret = 0;
+	int i, ret = 0;
 
 	lcd->gamma_table = kzalloc(GAMMA_MAX * sizeof(u8 *), GFP_KERNEL);
 	if (IS_ERR_OR_NULL(lcd->gamma_table)) {
@@ -797,12 +791,13 @@ static int init_gamma_table(struct lcd_info *lcd)
 			calc_gamma_table(&lcd->smart, aid_candela_table[i], &lcd->gamma_table[i][2], G_215);
 	}
 
+#ifdef SMART_DIMMING_DEBUG
 	for (i = 0; i < GAMMA_MAX; i++) {
 		for (j = 0; j < GAMMA_PARAM_SIZE; j++)
-			smtd_dbg("%d, ", lcd->gamma_table[i][j]);
-		smtd_dbg("\n");
+			printk("%d, ", lcd->gamma_table[i][j]);
+		printk("\n");
 	}
-
+#endif
 	return 0;
 
 err_alloc_gamma:
@@ -825,27 +820,25 @@ static int init_aid_dimming_table(struct lcd_info *lcd)
 	}
 
 	for (i = 0; i < GAMMA_MAX; i++) {
-#if defined(CONFIG_LCD_REVERSE)
-		memcpy(lcd->f8[i], SEQ_REVERSE_PANEL_CONDITION_SET_500MBPS, AID_PARAM_SIZE);
-#else
 		memcpy(lcd->f8[i], SEQ_PANEL_CONDITION_SET_500MBPS, AID_PARAM_SIZE);
-#endif
 		lcd->f8[i][0x12] = aid_command_table[i][0];
 		lcd->f8[i][0x01] = aid_command_table[i][1];
 	}
 
+
+#ifdef SMART_DIMMING_DEBUG
 	for (i = 0; i < GAMMA_MAX; i++) {
 		for (j = 0; j < GAMMA_PARAM_SIZE; j++)
-			smtd_dbg("%d, ", lcd->gamma_table[i][j]);
-		smtd_dbg("\n");
+			printk("%d, ", lcd->gamma_table[i][j]);
+		printk("\n");
 	}
-
+#endif
 	return 0;
 }
 #else
 static int init_gamma_table(struct lcd_info *lcd)
 {
-	int i, j, ret = 0;
+	int i, ret = 0;
 
 	lcd->gamma_table = kzalloc(GAMMA_MAX * sizeof(u8 *), GFP_KERNEL);
 	if (IS_ERR_OR_NULL(lcd->gamma_table)) {
@@ -866,12 +859,13 @@ static int init_gamma_table(struct lcd_info *lcd)
 		calc_gamma_table(&lcd->smart, candela_table[i]-1, lcd->gamma_table[i]+2);
 	}
 
+#ifdef SMART_DIMMING_DEBUG
 	for (i = 0; i < GAMMA_MAX; i++) {
 		for (j = 0; j < GAMMA_PARAM_SIZE; j++)
-			smtd_dbg("0x%02x, ", lcd->gamma_table[i][j]);
-		smtd_dbg("\n");
+			printk("0x%02x, ", lcd->gamma_table[i][j]);
+		printk("\n");
 	}
-
+#endif
 	return 0;
 
 err_alloc_gamma:
@@ -944,13 +938,8 @@ static int s6e8ax0_ldi_init(struct lcd_info *lcd)
 
 	/* 4.8" HD for M0/C1*/
 	if (lcd->id[1] == 0x20 || lcd->id[1] == 0x40 || lcd->id[1] == 0x60) {
-#if defined(CONFIG_LCD_REVERSE)
-		s6e8ax0_write(lcd, SEQ_REVERSE_PANEL_CONDITION_SET_500MBPS,\
-			ARRAY_SIZE(SEQ_REVERSE_PANEL_CONDITION_SET_500MBPS));
-#else
 		s6e8ax0_write(lcd, SEQ_PANEL_CONDITION_SET_500MBPS,\
 			ARRAY_SIZE(SEQ_PANEL_CONDITION_SET_500MBPS));
-#endif
 		s6e8ax0_write(lcd, SEQ_DISPLAY_CONDITION_SET, ARRAY_SIZE(SEQ_DISPLAY_CONDITION_SET));
 		s6e8ax0_gamma_ctl(lcd);
 		s6e8ax0_write(lcd, SEQ_ETC_SOURCE_CONTROL, ARRAY_SIZE(SEQ_ETC_SOURCE_CONTROL));
@@ -1081,9 +1070,10 @@ static int s6e8ax0_get_power(struct lcd_device *ld)
 
 static int s6e8ax0_check_fb(struct lcd_device *ld, struct fb_info *fb)
 {
+	struct s3cfb_window *win = fb->par;
 	struct lcd_info *lcd = lcd_get_data(ld);
 
-	dev_dbg(&lcd->ld->dev, "%s, fb%d\n", __func__, fb->node);
+	//dev_info(&lcd->ld->dev, "%s, fb%d\n", __func__, win->id);
 
 	return 0;
 }
@@ -1169,43 +1159,6 @@ static ssize_t power_reduce_store(struct device *dev,
 
 static DEVICE_ATTR(power_reduce, 0664, power_reduce_show, power_reduce_store);
 
-static ssize_t siop_enable_show(struct device *dev,
-	struct device_attribute *attr, char *buf)
-{
-	struct lcd_info *lcd = dev_get_drvdata(dev);
-	char temp[3];
-
-	sprintf(temp, "%d\n", lcd->siop_enable);
-	strcpy(buf, temp);
-
-	return strlen(buf);
-}
-
-static ssize_t siop_enable_store(struct device *dev,
-	struct device_attribute *attr, const char *buf, size_t size)
-{
-	struct lcd_info *lcd = dev_get_drvdata(dev);
-	int value;
-	int rc;
-
-	rc = strict_strtoul(buf, (unsigned int)0, (unsigned long *)&value);
-	if (rc < 0)
-		return rc;
-	else {
-		if (lcd->siop_enable != value) {
-			dev_info(dev, "%s - %d, %d\n", __func__, lcd->siop_enable, value);
-			mutex_lock(&lcd->bl_lock);
-			lcd->siop_enable = value;
-			mutex_unlock(&lcd->bl_lock);
-			if (lcd->ldi_enable)
-				update_brightness(lcd, 1);
-		}
-	}
-	return size;
-}
-
-static DEVICE_ATTR(siop_enable, 0664, siop_enable_show, siop_enable_store);
-
 static ssize_t lcd_type_show(struct device *dev,
 	struct device_attribute *attr, char *buf)
 {
@@ -1286,16 +1239,13 @@ struct lcd_info *g_lcd;
 void s6e8ax0_early_suspend(void)
 {
 	struct lcd_info *lcd = g_lcd;
-	int err = 0;
 
 	set_dsim_lcd_enabled(0);
 
 	dev_info(&lcd->ld->dev, "+%s\n", __func__);
 #if defined(GPIO_OLED_DET)
 	disable_irq(lcd->irq);
-	err = gpio_request(GPIO_OLED_DET, "OLED_DET");
-	if (err)
-		pr_err("fail to request gpio OLED_DET: %d\n", err);
+	gpio_request(GPIO_OLED_DET, "OLED_DET");
 	s3c_gpio_cfgpin(GPIO_OLED_DET, S3C_GPIO_OUTPUT);
 	s3c_gpio_setpull(GPIO_OLED_DET, S3C_GPIO_PULL_NONE);
 	gpio_direction_output(GPIO_OLED_DET, GPIO_LEVEL_LOW);
@@ -1330,7 +1280,7 @@ static void s6e8ax0_read_id(struct lcd_info *lcd, u8 *buf)
 {
 	int ret = 0;
 
-	ret = s6e8ax0_read(lcd, LDI_ID_REG, LDI_ID_LEN, buf, 2);
+	ret = s6e8ax0_read(lcd, LDI_ID_REG, LDI_ID_LEN, buf, 3);
 	if (!ret) {
 		lcd->connected = 0;
 		dev_info(&lcd->ld->dev, "panel is not connected well\n");
@@ -1342,7 +1292,7 @@ static int s6e8ax0_read_mtp(struct lcd_info *lcd, u8 *mtp_data)
 {
 	int ret;
 
-	ret = s6e8ax0_read(lcd, LDI_MTP_ADDR, LDI_MTP_LENGTH, mtp_data, 1);
+	ret = s6e8ax0_read(lcd, LDI_MTP_ADDR, LDI_MTP_LENGTH, mtp_data, 0);
 
 	return ret;
 }
@@ -1445,7 +1395,6 @@ static int s6e8ax0_probe(struct device *dev)
 	lcd->current_bl = lcd->bl;
 
 	lcd->acl_enable = 0;
-	lcd->siop_enable = 0;
 	lcd->current_acl = 0;
 
 	lcd->power = FB_BLANK_UNBLANK;
@@ -1454,10 +1403,6 @@ static int s6e8ax0_probe(struct device *dev)
 	lcd->auto_brightness = 0;
 
 	ret = device_create_file(&lcd->ld->dev, &dev_attr_power_reduce);
-	if (ret < 0)
-		dev_err(&lcd->ld->dev, "failed to add sysfs entries, %d\n", __LINE__);
-
-	ret = device_create_file(&lcd->ld->dev, &dev_attr_siop_enable);
 	if (ret < 0)
 		dev_err(&lcd->ld->dev, "failed to add sysfs entries, %d\n", __LINE__);
 

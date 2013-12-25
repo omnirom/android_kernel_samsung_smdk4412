@@ -57,9 +57,9 @@ struct lcd_info {
 
 	unsigned int			irq;
 	unsigned int			connected;
-#if defined(GPIO_VGH_DET)
-	struct delayed_work		vgh_detection;
-	unsigned int			vgh_detection_count;
+#if defined(GPIO_OLED_DET)
+	struct delayed_work		oled_detection;
+	unsigned int			oled_detection_count;
 
 #endif
 	struct dsim_global		*dsim;
@@ -75,12 +75,6 @@ static const unsigned char SEQ_PASSWD2[] = {
 	0x5A, 0x5A
 };
 
-static const unsigned char SEQ_PANELCTL[] = {
-	0xF6,
-	0x0B, 0x11, 0x0F, 0x25, 0x0A, 0x00, 0x13, 0x22, 0x1B, 0x03,
-	0x00, 0x00, 0x00, 0x00, 0x00, 0x04, 0x24, 0x3F, 0x3C, 0x51,
-};
-
 static const unsigned char SEQ_SONY_IP_SET1[] = {
 	0xC4,
 	0x7C, 0xE6, 0x7C, 0xE6, 0x7C, 0xE6, 0x7C, 0x7C,
@@ -90,7 +84,7 @@ static const unsigned char SEQ_SONY_IP_SET1[] = {
 static const unsigned char SEQ_SONY_IP_SET2[] = {
 	0xC5,
 	0x80, 0x80, 0x80, 0x41, 0x43, 0x34, 0x80, 0x80,
-	0x01, 0xFF, 0xA5, 0x58, 0x50,
+	0x01, 0xFF, 0x25, 0x58, 0x50
 };
 
 /* Should be removed when panel nvm is updated */
@@ -99,10 +93,10 @@ static const unsigned char SEQ_PGAMMACTL[] = {
 	0xDA,	0x9B,	0x16,	0x51,	0x12,	0x15,	0xD9,	0x9B,
 	0x1A,	0xDD,	0x62,	0x2D,	0x79,	0x6A,	0x2C,	0x7F,
 	0x11,	0x09,	0x53,	0x91,	0x09,	0x08,	0xCA,	0x06,
-	0x47,	0x09,	0x0D,	0x92,	0x55,	0x16,	0xD9,	0x5C,
-	0x5E,	0x1E,	0x01,	0x4F,	0x3F,	0x97,	0x53,	0x21,
-	0x62,	0x5A,	0x1A,	0x1C,	0x1A,	0xD7,	0x99,	0x5D,
-	0x21,	0x25,	0x66,	0xA9,	0xAC,	0x2A,	0xEA,	0x8F,
+	0x04,	0x87,	0x0B,	0x4E,	0xD2,	0x13,	0xD7,	0x18,
+	0x1A,	0x9A,	0xC1,	0x0F,	0xFF,	0xD7,	0x53,	0x61,
+	0xE2,	0x5A,	0x9A,	0xDC,	0x59,	0x96,	0x98,	0x5C,
+	0x1F,	0xE3,	0x25,	0xE6,	0x27,	0x23,	0x23,	0x4C,
 };
 
 static const unsigned char SEQ_NGAMMACTL[] = {
@@ -110,10 +104,10 @@ static const unsigned char SEQ_NGAMMACTL[] = {
 	0xDA,	0x9B,	0x16,	0x51,	0x12,	0x15,	0xD9,	0x9B,
 	0x1A,	0xDD,	0x62,	0x2D,	0x79,	0x6A,	0x2C,	0x7F,
 	0x11,	0x09,	0x53,	0x91,	0x09,	0x08,	0xCA,	0x06,
-	0x47,	0x09,	0x0D,	0x92,	0x55,	0x16,	0xD9,	0x5C,
-	0x5E,	0x1E,	0x01,	0x4F,	0x3F,	0x97,	0x53,	0x21,
-	0x62,	0x5A,	0x1A,	0x1C,	0x1A,	0xD7,	0x99,	0x5D,
-	0x21,	0x25,	0x66,	0xA9,	0xAC,	0x2A,	0xEA,	0x8F,
+	0x04,	0x87,	0x0B,	0x4E,	0xD2,	0x13,	0xD7,	0x18,
+	0x1A,	0x9A,	0xC1,	0x0F,	0xFF,	0xD7,	0x53,	0x61,
+	0xE2,	0x5A,	0x9A,	0xDC,	0x59,	0x96,	0x98,	0x5C,
+	0x1F,	0xE3,	0x25,	0xE6,	0x27,	0x23,	0x23,	0x4C,
 };
 
 static const unsigned char SEQ_PASSWD1_DISABLE[] = {
@@ -176,7 +170,7 @@ static const unsigned char SEQ_SLPIN[] = {
 
 static unsigned char SEQ_WRDISBV_CTL[] = {
 	0x51,
-	0x78,
+	0xFF,
 	0x00
 };
 
@@ -218,7 +212,7 @@ static unsigned char TRANS_BRIGHTNESS[] = {
 extern void (*lcd_early_suspend)(void);
 extern void (*lcd_late_resume)(void);
 
-#if defined(GPIO_VGH_DET)
+#if defined(GPIO_OLED_DET)
 static void esd_reset_lcd(struct lcd_info *lcd)
 {
 	dev_info(&lcd->ld->dev, "++%s\n", __func__);
@@ -232,37 +226,36 @@ static void esd_reset_lcd(struct lcd_info *lcd)
 	dev_info(&lcd->ld->dev, "--%s\n", __func__);
 }
 
-static void vgh_detection_work(struct work_struct *work)
+static void oled_detection_work(struct work_struct *work)
 {
 	struct lcd_info *lcd =
-		container_of(work, struct lcd_info, vgh_detection.work);
+		container_of(work, struct lcd_info, oled_detection.work);
 
-	int oled_det_level = gpio_get_value(GPIO_VGH_DET);
+	int oled_det_level = gpio_get_value(GPIO_OLED_DET);
 
-	dev_info(&lcd->ld->dev, "%s, %d, %d\n", __func__, lcd->vgh_detection_count, oled_det_level);
+	dev_info(&lcd->ld->dev, "%s, %d, %d\n", __func__, lcd->oled_detection_count, oled_det_level);
 	if (!oled_det_level)
 		esd_reset_lcd(lcd);
 }
 
-static irqreturn_t vgh_detection_int(int irq, void *_lcd)
+static irqreturn_t oled_detection_int(int irq, void *_lcd)
 {
 	struct lcd_info *lcd = _lcd;
 
 	dev_info(&lcd->ld->dev, "%s\n", __func__);
 
-	lcd->vgh_detection_count = 0;
-	schedule_delayed_work(&lcd->vgh_detection, HZ/16);
+	lcd->oled_detection_count = 0;
+	schedule_delayed_work(&lcd->oled_detection, HZ/16);
 
 	return IRQ_HANDLED;
 }
 #endif
 
 
-static int _s6d6aa1_write(struct lcd_info *lcd, const unsigned char *seq, int len)
+static int s6d6aa1_write(struct lcd_info *lcd, const unsigned char *seq, int len)
 {
 	int size;
 	const unsigned char *wbuf;
-	int ret = 0;
 
 	if (!lcd->connected)
 		return 0;
@@ -273,34 +266,15 @@ static int _s6d6aa1_write(struct lcd_info *lcd, const unsigned char *seq, int le
 	wbuf = seq;
 
 	if (size == 1)
-		ret = lcd->dsim->ops->cmd_write(lcd->dsim, DCS_WR_NO_PARA, wbuf[0], 0);
+		lcd->dsim->ops->cmd_write(lcd->dsim, DCS_WR_NO_PARA, wbuf[0], 0);
 	else if (size == 2)
-		ret = lcd->dsim->ops->cmd_write(lcd->dsim, DCS_WR_1_PARA, wbuf[0], wbuf[1]);
+		lcd->dsim->ops->cmd_write(lcd->dsim, DCS_WR_1_PARA, wbuf[0], wbuf[1]);
 	else
-		ret = lcd->dsim->ops->cmd_write(lcd->dsim, DCS_LONG_WR, (unsigned int)wbuf, size);
+		lcd->dsim->ops->cmd_write(lcd->dsim, DCS_LONG_WR, (unsigned int)wbuf, size);
 
 	mutex_unlock(&lcd->lock);
 
-	return ret;
-}
-
-static int s6d6aa1_write(struct lcd_info *lcd, const unsigned char *seq, int len)
-{
-	int ret = 0;
-	int retry_cnt = 1;
-
-retry:
-	ret = _s6d6aa1_write(lcd, seq, len);
-	if (!ret) {
-		if (retry_cnt) {
-			dev_dbg(&lcd->ld->dev, "%s :: retry: %d\n", __func__, retry_cnt);
-			retry_cnt--;
-			goto retry;
-		} else
-			dev_dbg(&lcd->ld->dev, "%s :: 0x%02x\n", __func__, seq[1]);
-	}
-
-	return ret;
+	return 0;
 }
 
 static int _s6d6aa1_read(struct lcd_info *lcd, const u8 addr, u16 count, u8 *buf)
@@ -376,15 +350,14 @@ static int s6d6aa1_ldi_init(struct lcd_info *lcd)
 {
 	int ret = 0;
 
-	usleep_range(20000, 20000);
+	msleep(15);
 
 	s6d6aa1_write(lcd, SEQ_SLPOUT, ARRAY_SIZE(SEQ_SLPOUT));
 
-	usleep_range(145000, 145000);
+	msleep(145);
 
 	s6d6aa1_write(lcd, SEQ_PASSWD1, ARRAY_SIZE(SEQ_PASSWD1));
 	s6d6aa1_write(lcd, SEQ_PASSWD2, ARRAY_SIZE(SEQ_PASSWD2));
-	s6d6aa1_write(lcd, SEQ_PANELCTL, ARRAY_SIZE(SEQ_PANELCTL));
 	s6d6aa1_write(lcd, SEQ_SONY_IP_SET1, ARRAY_SIZE(SEQ_SONY_IP_SET1));
 	s6d6aa1_write(lcd, SEQ_SONY_IP_SET2, ARRAY_SIZE(SEQ_SONY_IP_SET2));
 	s6d6aa1_write(lcd, SEQ_PGAMMACTL, ARRAY_SIZE(SEQ_PGAMMACTL));
@@ -491,9 +464,10 @@ static int s6d6aa1_set_power(struct lcd_device *ld, int power)
 
   static int s6d6aa1_check_fb(struct lcd_device *ld, struct fb_info *fb)
 {
+	struct s3cfb_window *win = fb->par;
 	struct lcd_info *lcd = lcd_get_data(ld);
 
-	dev_info(&lcd->ld->dev, "%s, fb%d\n", __func__, fb->node);
+	dev_info(&lcd->ld->dev, "%s, fb%d\n", __func__, win->id);
 
 	return 0;
 }
@@ -608,13 +582,13 @@ void s6d6aa1_early_suspend(void)
 
 	dev_info(&lcd->ld->dev, "+%s\n", __func__);
 
-#if defined(GPIO_VGH_DET)
+#if defined(GPIO_OLED_DET)
 	disable_irq(lcd->irq);
-	gpio_request(GPIO_VGH_DET, "VGH_DET");
-	s3c_gpio_cfgpin(GPIO_VGH_DET, S3C_GPIO_OUTPUT);
-	s3c_gpio_setpull(GPIO_VGH_DET, S3C_GPIO_PULL_NONE);
-	gpio_direction_output(GPIO_VGH_DET, GPIO_LEVEL_LOW);
-	gpio_free(GPIO_VGH_DET);
+	gpio_request(GPIO_OLED_DET, "OLED_DET");
+	s3c_gpio_cfgpin(GPIO_OLED_DET, S3C_GPIO_OUTPUT);
+	s3c_gpio_setpull(GPIO_OLED_DET, S3C_GPIO_PULL_NONE);
+	gpio_direction_output(GPIO_OLED_DET, GPIO_LEVEL_LOW);
+	gpio_free(GPIO_OLED_DET);
 #endif
 	s6d6aa1_power(lcd, FB_BLANK_POWERDOWN);
 
@@ -630,9 +604,9 @@ void s6d6aa1_late_resume(void)
 	dev_info(&lcd->ld->dev, "+%s\n", __func__);
 
 	s6d6aa1_power(lcd, FB_BLANK_UNBLANK);
-#if defined(GPIO_VGH_DET)
-	s3c_gpio_cfgpin(GPIO_VGH_DET, S3C_GPIO_SFN(0xf));
-	s3c_gpio_setpull(GPIO_VGH_DET, S3C_GPIO_PULL_NONE);
+#if defined(GPIO_OLED_DET)
+	s3c_gpio_cfgpin(GPIO_OLED_DET, S3C_GPIO_SFN(0xf));
+	s3c_gpio_setpull(GPIO_OLED_DET, S3C_GPIO_PULL_NONE);
 	enable_irq(lcd->irq);
 #endif
 	dev_info(&lcd->ld->dev, "-%s\n", __func__);
@@ -695,18 +669,18 @@ static int s6d6aa1_probe(struct device *dev)
 	mutex_init(&lcd->lock);
 	mutex_init(&lcd->bl_lock);
 
-	dev_info(&lcd->ld->dev, "s6d6aa1 lcd panel driver has been probed.\n");
+	dev_info(&lcd->ld->dev, "s6e8aa0 lcd panel driver has been probed.\n");
 
-#if defined(GPIO_VGH_DET)
+#if defined(GPIO_OLED_DET)
 	if (lcd->connected) {
-		INIT_DELAYED_WORK(&lcd->vgh_detection, vgh_detection_work);
+		INIT_DELAYED_WORK(&lcd->oled_detection, oled_detection_work);
 
-		lcd->irq = gpio_to_irq(GPIO_VGH_DET);
+		lcd->irq = gpio_to_irq(GPIO_OLED_DET);
 
-		s3c_gpio_cfgpin(GPIO_VGH_DET, S3C_GPIO_SFN(0xf));
-		s3c_gpio_setpull(GPIO_VGH_DET, S3C_GPIO_PULL_NONE);
-		if (request_irq(lcd->irq, vgh_detection_int,
-			IRQF_TRIGGER_FALLING, "vgh_detection", lcd))
+		s3c_gpio_cfgpin(GPIO_OLED_DET, S3C_GPIO_SFN(0xf));
+		s3c_gpio_setpull(GPIO_OLED_DET, S3C_GPIO_PULL_NONE);
+		if (request_irq(lcd->irq, oled_detection_int,
+			IRQF_TRIGGER_FALLING, "oled_detection", lcd))
 			pr_err("failed to reqeust irq. %d\n", lcd->irq);
 		}
 #endif
