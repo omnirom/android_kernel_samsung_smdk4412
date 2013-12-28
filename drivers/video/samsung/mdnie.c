@@ -47,9 +47,9 @@
 #else	/* CONFIG_CPU_EXYNOS4210 */
 #if defined(CONFIG_FB_S5P_S6E8AA0) && defined(CONFIG_S6E8AA0_AMS465XX)
 #include "mdnie_table_superior.h"
-#elif defined(CONFIG_FB_S5P_S6E8AA0)
+#elif defined(CONFIG_FB_S5P_S6E8AA0) || defined(CONFIG_FB_S5P_S6EVR02)
 #include "mdnie_table_m0.h"
-#elif defined(CONFIG_FB_S5P_EA8061) || defined(CONFIG_FB_S5P_S6EVR02)
+#elif defined(CONFIG_FB_S5P_EA8061)
 #include "mdnie_table_t0.h"
 #elif defined(CONFIG_FB_S5P_S6E63M0)
 #include "mdnie_table_m0.h"
