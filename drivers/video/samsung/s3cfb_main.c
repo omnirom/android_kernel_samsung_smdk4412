@@ -42,10 +42,19 @@
 #endif
 
 #ifdef CONFIG_FB_S5P_MDNIE
+
+#ifdef CONFIG_MACH_KONA
+
+#include "s3cfb_mdnie_kona.h"
+#include "mdnie_kona.h"
+#else
 #include "s3cfb_mdnie.h"
+
 #include "mdnie.h"
 #endif
+#endif
 #ifdef CONFIG_HAS_WAKELOCK
+
 #include <linux/wakelock.h>
 #include <linux/earlysuspend.h>
 #include <linux/suspend.h>
@@ -203,13 +212,13 @@ int s3cfb_wait_for_vsync(struct s3cfb_global *fbdev, u32 timeout)
 	s3cfb_activate_vsync(fbdev);
 	if (timeout) {
 		ret = wait_event_interruptible_timeout(fbdev->vsync_info.wait,
-						!ktime_equal(timestamp,
-						fbdev->vsync_info.timestamp),
-						msecs_to_jiffies(timeout));
+                                               !ktime_equal(timestamp,
+                                                            fbdev->vsync_info.timestamp),
+                                               msecs_to_jiffies(timeout));
 	} else {
 		ret = wait_event_interruptible(fbdev->vsync_info.wait,
-						!ktime_equal(timestamp,
-						fbdev->vsync_info.timestamp));
+                                       !ktime_equal(timestamp,
+                                                    fbdev->vsync_info.timestamp));
 	}
 	s3cfb_deactivate_vsync(fbdev);
 
@@ -233,13 +242,13 @@ int s3cfb_register_framebuffer(struct s3cfb_global *fbdev)
 		ret = register_framebuffer(fbdev->fb[j]);
 		if (ret) {
 			dev_err(fbdev->dev, "failed to register	\
-				framebuffer device\n");
+                    framebuffer device\n");
 			goto err;
 		}
 #ifndef CONFIG_FRAMEBUFFER_CONSOLE
 		if (j == pdata->default_win) {
 			s3cfb_check_var_window(fbdev, &fbdev->fb[j]->var,
-					fbdev->fb[j]);
+                                   fbdev->fb[j]);
 			ret = s3cfb_set_par_window(fbdev, fbdev->fb[j]);
 			if (ret != 0)
 				BUG();
@@ -297,7 +306,7 @@ void read_lcd_register(void)
 }
 
 static int s3cfb_sysfs_show_win_power(struct device *dev,
-				struct device_attribute *attr, char *buf)
+                                      struct device_attribute *attr, char *buf)
 {
 	struct s3c_platform_fb *pdata = to_fb_plat(dev);
 	struct s3cfb_window *win;
@@ -316,8 +325,8 @@ static int s3cfb_sysfs_show_win_power(struct device *dev,
 }
 
 static int s3cfb_sysfs_store_win_power(struct device *dev,
-				struct device_attribute *attr,
-				const char *buf, size_t len)
+                                       struct device_attribute *attr,
+                                       const char *buf, size_t len)
 {
 	struct s3c_platform_fb *pdata = to_fb_plat(dev);
 	char temp[4] = { 0, };
@@ -353,10 +362,10 @@ static int s3cfb_sysfs_store_win_power(struct device *dev,
 }
 
 static DEVICE_ATTR(win_power, 0644,
-	s3cfb_sysfs_show_win_power, s3cfb_sysfs_store_win_power);
+                   s3cfb_sysfs_show_win_power, s3cfb_sysfs_store_win_power);
 
 static ssize_t ielcd_dump_show(struct device *dev,
-	struct device_attribute *attr, char *buf)
+                               struct device_attribute *attr, char *buf)
 {
 	unsigned int i;
 	char *pos = buf;
@@ -376,7 +385,7 @@ static ssize_t ielcd_dump_show(struct device *dev,
 static DEVICE_ATTR(ielcd_dump, 0444, ielcd_dump_show, NULL);
 
 static ssize_t fimd_dump_show(struct device *dev,
-	struct device_attribute *attr, char *buf)
+                              struct device_attribute *attr, char *buf)
 {
 	unsigned int i;
 	char *pos = buf;
@@ -395,14 +404,14 @@ static ssize_t fimd_dump_show(struct device *dev,
 static DEVICE_ATTR(fimd_dump, 0444, fimd_dump_show, NULL);
 
 static ssize_t vsync_event_show(struct device *dev,
-	struct device_attribute *attr, char *buf)
+                                struct device_attribute *attr, char *buf)
 {
 	struct s3cfb_global *fbdev[1];
 	fbdev[0] = fbfimd->fbdev[0];
 
 	return snprintf(buf, PAGE_SIZE, "%llu",
-			((fbdev[0] != 0) ?
-			ktime_to_ns(fbdev[0]->vsync_info.timestamp) : 0));
+                    ((fbdev[0] != 0) ?
+                     ktime_to_ns(fbdev[0]->vsync_info.timestamp) : 0));
 }
 
 static DEVICE_ATTR(vsync_time, S_IRUGO, vsync_event_show, NULL);
@@ -417,13 +426,13 @@ static int s3cfb_wait_for_vsync_thread(void *data)
 		struct s3c_platform_fb *pdata = to_fb_plat(fbdev->dev);
 
 		wait_event_interruptible(
-				fbdev->vsync_info.wait,
-				!ktime_equal(timestamp,
-				fbdev->vsync_info.timestamp) &&
-				fbdev->vsync_info.active);
+                                 fbdev->vsync_info.wait,
+                                 !ktime_equal(timestamp,
+                                              fbdev->vsync_info.timestamp) &&
+                                 fbdev->vsync_info.active);
 
 		sysfs_notify(&fbdev->dev->kobj,
-				NULL, "vsync_time");
+                     NULL, "vsync_time");
 	}
 
 	return 0;
@@ -433,7 +442,7 @@ static int s3cfb_wait_for_vsync_thread(void *data)
 static void s3c_fb_update_regs_handler(struct kthread_work *work)
 {
 	struct s3cfb_global *fbdev =
-		container_of(work, struct s3cfb_global, update_regs_work);
+    container_of(work, struct s3cfb_global, update_regs_work);
 	struct s3c_reg_data *data, *next;
 	struct list_head saved_list;
 
@@ -457,7 +466,7 @@ static void s3cfb_lcd0_power_domain_start(void)
 	/* Wait max 1ms */
 	timeout = 1000;
 	while ((readl(S5P_PMU_LCD0_CONF + 0x4) & S5P_INT_LOCAL_PWR_EN)\
-		!= S5P_INT_LOCAL_PWR_EN) {
+           != S5P_INT_LOCAL_PWR_EN) {
 		if (timeout == 0) {
 			printk(KERN_ERR "Power domain lcd0 enable failed.\n");
 			break;
@@ -471,7 +480,7 @@ static void s3cfb_lcd0_power_domain_start(void)
 		writel(0x1, S5P_PMU_LCD0_CONF + 0x8);
 		writel(S5P_INT_LOCAL_PWR_EN, S5P_PMU_LCD0_CONF);
 		while ((readl(S5P_PMU_LCD0_CONF + 0x4) & S5P_INT_LOCAL_PWR_EN)\
-			!= S5P_INT_LOCAL_PWR_EN) {
+               != S5P_INT_LOCAL_PWR_EN) {
 
 			if (timeout == 0) {
 				printk(KERN_ERR "Power domain lcd0 enable failed 2nd.\n");
@@ -565,7 +574,7 @@ void s3cfb_early_suspend(struct early_suspend *h)
 
 		info->system_state = POWER_OFF;
 		if (info->support_fence == FENCE_SUPPORT)
-		flush_kthread_worker(&fbdev[i]->update_regs_worker);
+            flush_kthread_worker(&fbdev[i]->update_regs_worker);
 
 		/* Disable Vsync */
 		s3cfb_set_global_interrupt(fbdev[i], 0);
@@ -579,7 +588,11 @@ void s3cfb_early_suspend(struct early_suspend *h)
 		ret = s3cfb_display_off(fbdev[i]);
 
 #ifdef CONFIG_FB_S5P_MDNIE
+#ifdef CONFIG_MACH_KONA
+        ret += mdnie_display_off();
+#else
 		ret += mdnie_display_off();
+#endif
 #endif
 
 		if (ret > 0)
@@ -659,7 +672,7 @@ void s3cfb_late_resume(struct early_suspend *h)
 		if (fbdev[i]->regs_org)
 			fbdev[i]->regs = fbdev[i]->regs_org;
 		else
-			/* fbdev[i]->regs_org should be non-zero value */
+        /* fbdev[i]->regs_org should be non-zero value */
 			BUG();
 
 #if defined(CONFIG_FB_MDNIE_PWM)
@@ -683,7 +696,11 @@ void s3cfb_late_resume(struct early_suspend *h)
 		 */
 		s3cfb_set_alpha_value(fbdev[i], 1);
 #ifdef CONFIG_FB_S5P_MDNIE
-		mdnie_display_on();
+#ifdef CONFIG_MACH_KONA
+        mdnie_display_on(fbdev[i]);
+#else
+        mdnie_display_on();
+#endif
 #endif
 		s3cfb_display_on(fbdev[i]);
 
@@ -778,7 +795,7 @@ int s3cfb_suspend(struct platform_device *pdev, pm_message_t state)
 				fbdev[i]->regs_org = fbdev[i]->regs;
 				fbdev[i]->regs = 0;
 			} else
-				/* fbdev[i]->regs should be non-zero value */
+            /* fbdev[i]->regs should be non-zero value */
 				BUG();
 			pdata->clk_off(pdev, &fbdev[i]->clock);
 		}
@@ -832,7 +849,7 @@ int s3cfb_resume(struct platform_device *pdev)
 			if (fbdev[i]->regs_org)
 				fbdev[i]->regs = fbdev[i]->regs_org;
 			else
-				/* fbdev[i]->regs should be non-zero value */
+            /* fbdev[i]->regs should be non-zero value */
 				BUG();
 
 			s3cfb_init_global(fbdev[i]);
@@ -895,7 +912,7 @@ static int s3cfb_disable(struct s3cfb_global *fbdev)
 
 	fbdev->system_state = POWER_OFF;
 	if (fbdev->support_fence == FENCE_NOT_SUPPORT)
-	flush_kthread_worker(&fbdev->update_regs_worker);
+        flush_kthread_worker(&fbdev->update_regs_worker);
 
 	if (fbdev->suspend)
 		return 0;
@@ -1016,8 +1033,8 @@ static int s3cfb_enable(struct s3cfb_global *fbdev)
 }
 
 static int lcd_switch_store(struct device *dev,
-				struct device_attribute *attr,
-				const char *buf, size_t len)
+                            struct device_attribute *attr,
+                            const char *buf, size_t len)
 {
 	struct s3cfb_global *fbdev = fbfimd->fbdev[0];
 	struct s3c_platform_fb *pdata = NULL;
@@ -1101,8 +1118,8 @@ static int s3cfb_probe(struct platform_device *pdev)
 		fbdev[i] = fbfimd->fbdev[i];
 		if (!fbdev[i]) {
 			dev_err(fbdev[i]->dev, "failed to allocate for	\
-				global fb structure fimd[%d]!\n", i);
-				ret = -ENOMEM;
+                    global fb structure fimd[%d]!\n", i);
+            ret = -ENOMEM;
 			goto err0;
 		}
 
@@ -1127,15 +1144,15 @@ static int s3cfb_probe(struct platform_device *pdev)
 		res = platform_get_resource(pdev, IORESOURCE_MEM, i);
 		if (!res) {
 			dev_err(fbdev[i]->dev,
-				"failed to get io memory region\n");
+                    "failed to get io memory region\n");
 			ret = -EINVAL;
 			goto err1;
 		}
 		res = request_mem_region(res->start,
-					res->end - res->start + 1, pdev->name);
+                                 res->end - res->start + 1, pdev->name);
 		if (!res) {
 			dev_err(fbdev[i]->dev,
-				"failed to request io memory region\n");
+                    "failed to request io memory region\n");
 			ret = -EINVAL;
 			goto err1;
 		}
@@ -1155,7 +1172,7 @@ static int s3cfb_probe(struct platform_device *pdev)
 		init_kthread_worker(&fbdev[i]->update_regs_worker);
 
 		fbdev[i]->update_regs_thread = kthread_run(kthread_worker_fn,
-				&fbdev[i]->update_regs_worker, "s3c-fb");
+                                                   &fbdev[i]->update_regs_worker, "s3c-fb");
 		if (IS_ERR(fbdev[i]->update_regs_thread)) {
 			int err = PTR_ERR(fbdev[i]->update_regs_thread);
 			fbdev[i]->update_regs_thread = NULL;
@@ -1172,7 +1189,7 @@ static int s3cfb_probe(struct platform_device *pdev)
 		/* irq */
 		fbdev[i]->irq = platform_get_irq(pdev, 0);
 		if (request_irq(fbdev[i]->irq, s3cfb_irq_frame, IRQF_SHARED,
-				pdev->name, fbdev[i])) {
+                        pdev->name, fbdev[i])) {
 			dev_err(fbdev[i]->dev, "request_irq failed\n");
 			ret = -EINVAL;
 			goto err2;
@@ -1180,7 +1197,7 @@ static int s3cfb_probe(struct platform_device *pdev)
 
 #ifdef CONFIG_FB_S5P_TRACE_UNDERRUN
 		if (request_irq(platform_get_irq(pdev, 1), s3cfb_irq_fifo,
-				IRQF_DISABLED, pdev->name, fbdev[i])) {
+                        IRQF_DISABLED, pdev->name, fbdev[i])) {
 			dev_err(fbdev[i]->dev, "request_irq failed\n");
 			ret = -EINVAL;
 			goto err2;
@@ -1192,7 +1209,11 @@ static int s3cfb_probe(struct platform_device *pdev)
 #ifdef CONFIG_FB_S5P_MDNIE
 		/*  only FIMD0 is supported */
 		if (i == 0)
+#ifdef CONFIG_MACH_KONA
+            mdnie_setup();
+#else
 			mdnie_setup();
+#endif
 #endif
 		/* hw setting */
 		s3cfb_init_global(fbdev[i]);
@@ -1225,13 +1246,18 @@ static int s3cfb_probe(struct platform_device *pdev)
 				pdata->set_display_path();
 
 			s3cfb_set_dualrgb(fbdev[i], S3C_DUALRGB_MDNIE);
+
+#ifdef CONFIG_MACH_KONA
+            mdnie_display_on(fbdev[i]);
+#else
 			mdnie_display_on();
+#endif
 		}
 #endif
 		s3cfb_enable_window(fbdev[0], pdata->default_win);
 
 		s3cfb_update_power_state(fbdev[i], pdata->default_win,
-					FB_BLANK_UNBLANK);
+                                 FB_BLANK_UNBLANK);
 
 		/* Set alpha value width to 8-bit */
 		s3cfb_set_alpha_value_width(fbdev[i], i);
@@ -1261,8 +1287,8 @@ static int s3cfb_probe(struct platform_device *pdev)
 		mutex_init(&fbdev[i]->vsync_info.irq_lock);
 
 		fbdev[i]->vsync_info.thread = kthread_run(
-						s3cfb_wait_for_vsync_thread,
-						fbdev[i], "s3c-fb-vsync");
+                                                  s3cfb_wait_for_vsync_thread,
+                                                  fbdev[i], "s3c-fb-vsync");
 		if (fbdev[i]->vsync_info.thread == ERR_PTR(-ENOMEM)) {
 			dev_err(fbdev[i]->dev, "failed to run vsync thread\n");
 			fbdev[i]->vsync_info.thread = NULL;
@@ -1277,7 +1303,7 @@ static int s3cfb_probe(struct platform_device *pdev)
 			dev_err(fbdev[0]->dev, "failed to add sysfs entries\n");
 
 		ret = device_create_file(fbdev[i]->dev,
-					&dev_attr_vsync_time);
+                                 &dev_attr_vsync_time);
 		if (ret < 0)
 			dev_err(fbdev[0]->dev, "failed to add sysfs entries\n");
 
