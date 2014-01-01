@@ -42,10 +42,19 @@
 #endif
 
 #ifdef CONFIG_FB_S5P_MDNIE
+
+#ifdef CONFIG_MACH_KONA
+
+#include "s3cfb_mdnie_kona.h"
+#include "mdnie_kona.h"
+#else
 #include "s3cfb_mdnie.h"
+
 #include "mdnie.h"
 #endif
+#endif
 #ifdef CONFIG_HAS_WAKELOCK
+
 #include <linux/wakelock.h>
 #include <linux/earlysuspend.h>
 #include <linux/suspend.h>
@@ -203,13 +212,13 @@ int s3cfb_wait_for_vsync(struct s3cfb_global *fbdev, u32 timeout)
 	s3cfb_activate_vsync(fbdev);
 	if (timeout) {
 		ret = wait_event_interruptible_timeout(fbdev->vsync_info.wait,
-						!ktime_equal(timestamp,
-						fbdev->vsync_info.timestamp),
-						msecs_to_jiffies(timeout));
+					!ktime_equal(timestamp,
+					fbdev->vsync_info.timestamp),
+					msecs_to_jiffies(timeout));
 	} else {
 		ret = wait_event_interruptible(fbdev->vsync_info.wait,
-						!ktime_equal(timestamp,
-						fbdev->vsync_info.timestamp));
+					!ktime_equal(timestamp,
+					fbdev->vsync_info.timestamp));
 	}
 	s3cfb_deactivate_vsync(fbdev);
 
@@ -579,7 +588,11 @@ void s3cfb_early_suspend(struct early_suspend *h)
 		ret = s3cfb_display_off(fbdev[i]);
 
 #ifdef CONFIG_FB_S5P_MDNIE
+#ifdef CONFIG_MACH_KONA
+	ret += mdnie_display_off();
+#else
 		ret += mdnie_display_off();
+#endif
 #endif
 
 		if (ret > 0)
@@ -683,7 +696,11 @@ void s3cfb_late_resume(struct early_suspend *h)
 		 */
 		s3cfb_set_alpha_value(fbdev[i], 1);
 #ifdef CONFIG_FB_S5P_MDNIE
+#ifdef CONFIG_MACH_KONA
+		mdnie_display_on(fbdev[i]);
+#else
 		mdnie_display_on();
+#endif
 #endif
 		s3cfb_display_on(fbdev[i]);
 
@@ -1132,7 +1149,7 @@ static int s3cfb_probe(struct platform_device *pdev)
 			goto err1;
 		}
 		res = request_mem_region(res->start,
-					res->end - res->start + 1, pdev->name);
+				res->end - res->start + 1, pdev->name);
 		if (!res) {
 			dev_err(fbdev[i]->dev,
 				"failed to request io memory region\n");
@@ -1192,7 +1209,11 @@ static int s3cfb_probe(struct platform_device *pdev)
 #ifdef CONFIG_FB_S5P_MDNIE
 		/*  only FIMD0 is supported */
 		if (i == 0)
+#ifdef CONFIG_MACH_KONA
 			mdnie_setup();
+#else
+			mdnie_setup();
+#endif
 #endif
 		/* hw setting */
 		s3cfb_init_global(fbdev[i]);
@@ -1225,7 +1246,12 @@ static int s3cfb_probe(struct platform_device *pdev)
 				pdata->set_display_path();
 
 			s3cfb_set_dualrgb(fbdev[i], S3C_DUALRGB_MDNIE);
+
+#ifdef CONFIG_MACH_KONA
+			mdnie_display_on(fbdev[i]);
+#else
 			mdnie_display_on();
+#endif
 		}
 #endif
 		s3cfb_enable_window(fbdev[0], pdata->default_win);
@@ -1261,8 +1287,8 @@ static int s3cfb_probe(struct platform_device *pdev)
 		mutex_init(&fbdev[i]->vsync_info.irq_lock);
 
 		fbdev[i]->vsync_info.thread = kthread_run(
-						s3cfb_wait_for_vsync_thread,
-						fbdev[i], "s3c-fb-vsync");
+					s3cfb_wait_for_vsync_thread,
+					fbdev[i], "s3c-fb-vsync");
 		if (fbdev[i]->vsync_info.thread == ERR_PTR(-ENOMEM)) {
 			dev_err(fbdev[i]->dev, "failed to run vsync thread\n");
 			fbdev[i]->vsync_info.thread = NULL;

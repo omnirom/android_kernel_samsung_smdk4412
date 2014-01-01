@@ -104,6 +104,13 @@ obj-$(CONFIG_MACH_SMDK4X12)		+= mach-smdk4x12.o
 ifeq ($(CONFIG_MACH_P4NOTE),y)
 obj-$(CONFIG_MACH_MIDAS)		+= mach-p4notepq.o px-switch.o p4note-jack.o
 else
+ifeq ($(CONFIG_MACH_KONA),y)
+ifeq ($(CONFIG_KONA_00_BD),y)
+obj-$(CONFIG_MACH_MIDAS)		+= mach-kona.o px-switch.o board-kona-battery.o
+else
+obj-$(CONFIG_MACH_MIDAS)		+= mach-kona.o
+endif
+else
 ifeq ($(CONFIG_MACH_IRON),y)
 obj-$(CONFIG_MACH_MIDAS)		+= board-grande.o grande-jack.o
 else
@@ -111,6 +118,7 @@ ifeq ($(CONFIG_MACH_GRANDE),y)
 obj-$(CONFIG_MACH_MIDAS)		+= board-grande.o grande-jack.o
 else
 obj-$(CONFIG_MACH_MIDAS)		+= mach-midas.o
+endif
 endif
 endif
 endif
@@ -133,6 +141,7 @@ obj-$(CONFIG_MACH_SMDK5250)		+= board-smdk5250-input.o
 obj-$(CONFIG_MACH_SMDK5250)		+= board-smdk5250-spi.o
 
 obj-$(CONFIG_MACH_P4NOTE)		+= p4-input.o
+obj-$(CONFIG_MACH_KONA)			+= kona-input.o
 
 ifeq ($(CONFIG_MACH_GRANDE),y)
 obj-$(CONFIG_MIDAS_COMMON)		+= sec-common.o board-gps-bcm475x.o \
@@ -175,6 +184,25 @@ obj-$(CONFIG_MIDAS_COMMON)		+= sec-common.o\
 					   board-gps-bcm475x.o
 obj-$(CONFIG_FB_S5P)			+= board-lcd-rgb.o
 else
+ifeq ($(CONFIG_MACH_KONA),y)
+obj-$(CONFIG_MIDAS_COMMON)              += sec-common.o\
+					   midas-tsp.o board-midas-wlan.o \
+					   midas-camera.o midas-thermistor.o \
+					   midas-mhl.o board-lcd-mipi.o midas-sound.o \
+					   midas-wacom.o board-gps-bcm4752.o
+else
+ifeq ($(CONFIG_MACH_SLP_T0_LTE),y)
+obj-$(CONFIG_MIDAS_COMMON)		+= sec-common.o \
+					   board-midas-wlan.o \
+					   midas-camera.o midas-thermistor.o \
+					   midas-mhl.o board-lcd-mipi.o
+else
+ifeq ($(CONFIG_MACH_SLP_PQ),y)
+obj-$(CONFIG_MIDAS_COMMON)		+= sec-common.o board-gps-bcm475x.o \
+					   board-midas-wlan.o \
+					   midas-camera.o midas-thermistor.o \
+					   midas-mhl.o board-lcd-mipi.o
+else
 obj-$(CONFIG_MIDAS_COMMON)		+= sec-common.o board-gps-bcm475x.o \
 					   midas-tsp.o board-midas-wlan.o \
 					   midas-camera.o midas-thermistor.o \
@@ -187,9 +215,12 @@ endif
 endif
 endif
 endif
+endif
 obj-$(CONFIG_IRON_BD)			+= board-iron-gpio.o board-grande-power.o
 obj-$(CONFIG_GRANDE_BD)			+= board-grande-gpio.o board-grande-power.o
 obj-$(CONFIG_P4NOTE_00_BD)		+= p4note-gpio.o p4note-power.o
+obj-$(CONFIG_KONA_00_BD)		+= kona-gpio.o kona-power.o
+obj-$(CONFIG_KONA_01_BD)		+= kona-01-gpio.o kona-01-power.o
 obj-$(CONFIG_GC1_00_BD)			+= gc1-gpio.o gc1-power.o gc1-jack.o
 obj-$(CONFIG_MACH_T0)			+= t0-gpio.o t0-power.o
 obj-$(CONFIG_MACH_BAFFIN)			+= baffin-gpio.o baffin-power.o
@@ -212,7 +243,12 @@ else
 ifeq ($(CONFIG_MACH_IRON),y)
 obj-$(CONFIG_MACH_MIDAS)		+= sec-reboot.o board-grande-sensor.o
 else
+ifeq ($(CONFIG_MACH_KONA_SENSOR), y)
+obj-$(CONFIG_MACH_MIDAS)		+= sec-reboot.o
+obj-$(CONFIG_MACH_KONA_SENSOR)		+= kona-sensor.o
+else
 obj-$(CONFIG_MACH_MIDAS)		+= sec-reboot.o midas-sensor.o
+endif
 endif
 endif
 obj-$(CONFIG_LEDS_LP5521)		+= midas-leds.o
@@ -327,3 +363,5 @@ obj-$(CONFIG_CORESIGHT_ETM) += coresight.o coresight-etb.o coresight-tpiu.o core
 
 # for audio platform data driver
 obj-$(CONFIG_EXYNOS_SOUND_PLATFORM_DATA)	+= exynos_sound_platform_data.o
+endif
+endif
