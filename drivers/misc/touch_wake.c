@@ -22,6 +22,11 @@
  * Bumped version to 1.1a
  *
  *                                         Jean-Pierre Rasquin <yank555.lu@gmail.com>
+ * Act as double tap to wake if delay is set to 0.
+ *
+ * Bumped version to 1.2
+ *
+ *                                         Utkarsh Gupta <utkarsh.eminem@gmail.com>
  */
 
 #include <linux/init.h>
@@ -44,7 +49,11 @@ static bool device_suspended = false;
 static bool timed_out = true;
 static bool prox_near = false;
 static unsigned int touchoff_delay = 45000;
+static unsigned int doubletap_speed = 250;
+static unsigned int press_times = 0;
 
+static void reset_press_times(struct work_struct * reset_press_times_work);
+static DECLARE_DELAYED_WORK(reset_press_times_work, reset_press_times);
 static void touchwake_touchoff(struct work_struct * touchoff_work);
 static DECLARE_DELAYED_WORK(touchoff_work, touchwake_touchoff);
 static void press_powerkey(struct work_struct * presspower_work);
@@ -240,6 +249,29 @@ static ssize_t touchwake_delay_write(struct device * dev, struct device_attribut
 	return size;
 }
 
+static ssize_t doubletap_speed_read(struct device * dev, struct device_attribute * attr, char * buf)
+{
+	return sprintf(buf, "%u\n", doubletap_speed);
+}
+
+static ssize_t doubletap_speed_write(struct device * dev, struct device_attribute * attr, const char * buf, size_t size)
+{
+	unsigned int data;
+
+	if(sscanf(buf, "%u\n", &data) == 1) {
+		doubletap_speed = data;
+		#ifdef DEBUG_PRINT
+		pr_info("[TOUCHWAKE] Double tap speed set to %u\n", doubletap_speed);
+		#endif
+	#ifdef DEBUG_PRINT
+	} else 	{
+		pr_info("[TOUCHWAKE] %s: invalid input\n", __FUNCTION__);
+	#endif
+	}
+
+	return size;
+}
+
 static ssize_t touchwake_version(struct device * dev, struct device_attribute * attr, char * buf)
 {
 	return sprintf(buf, "%s\n", TOUCHWAKE_VERSION);
@@ -254,6 +286,7 @@ static ssize_t touchwake_debug(struct device * dev, struct device_attribute * at
 
 static DEVICE_ATTR(enabled, S_IRUGO | S_IWUGO, touchwake_status_read, touchwake_status_write);
 static DEVICE_ATTR(delay, S_IRUGO | S_IWUGO, touchwake_delay_read, touchwake_delay_write);
+static DEVICE_ATTR(doubletap_speed, S_IRUGO | S_IWUGO, doubletap_speed_read, doubletap_speed_write);
 static DEVICE_ATTR(version, S_IRUGO , touchwake_version, NULL);
 #ifdef DEBUG_PRINT
 static DEVICE_ATTR(debug, S_IRUGO , touchwake_debug, NULL);
@@ -263,6 +296,7 @@ static struct attribute *touchwake_notification_attributes[] =
 {
 	&dev_attr_enabled.attr,
 	&dev_attr_delay.attr,
+	&dev_attr_doubletap_speed.attr,
 	&dev_attr_version.attr,
 #ifdef DEBUG_PRINT
 	&dev_attr_debug.attr,
@@ -351,12 +385,31 @@ void touch_press(void)
 	pr_info("[TOUCHWAKE] Touch press detected\n");
 	#endif
 
-	if (unlikely(device_suspended && touchwake_enabled && !prox_near && mutex_trylock(&lock)))
-		schedule_work(&presspower_work);
+	if (touchoff_delay > 0) {
+		if (unlikely(device_suspended && touchwake_enabled && !prox_near && mutex_trylock(&lock)))
+			schedule_work(&presspower_work);
+	} else if (touchoff_delay == 0) {
+		if (press_times == 1) {
+			press_times = 2;
+			if (unlikely(device_suspended && touchwake_enabled && !prox_near && mutex_trylock(&lock)))
+				schedule_work(&presspower_work);
+		} else if (press_times == 0) {
+			press_times = 1;
+			schedule_delayed_work(&reset_press_times_work, msecs_to_jiffies(doubletap_speed));
+		} else if (press_times == 2) {
+			press_times = 0;
+		}
+	}
 
 	return;
 }
 EXPORT_SYMBOL(touch_press);
+
+void reset_press_times(struct work_struct * reset_press_times_work)
+{
+	press_times = 0;
+	return;
+}
 
 void set_powerkeydev(struct input_dev * input_device)
 {   
