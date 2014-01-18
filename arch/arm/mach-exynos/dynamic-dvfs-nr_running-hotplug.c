@@ -42,6 +42,7 @@ static unsigned int can_hotplug;
 #ifdef CONFIG_SLP
 static unsigned int user_lock;			/* Enable/Disable hotplug */
 #endif
+static bool governor_hotplug;
 
 static void exynos4_integrated_dvfs_hotplug(unsigned int freq_old,
 					unsigned int freq_new)
@@ -174,7 +175,7 @@ static int hotplug_cpufreq_transition(struct notifier_block *nb,
 {
 	struct cpufreq_freqs *freqs = (struct cpufreq_freqs *)data;
 
-	if ((val == CPUFREQ_POSTCHANGE) && can_hotplug)
+	if ((val == CPUFREQ_POSTCHANGE) && can_hotplug && !governor_hotplug)
 		exynos4_integrated_dvfs_hotplug(freqs->old, freqs->new);
 
 	return 0;
@@ -182,6 +183,35 @@ static int hotplug_cpufreq_transition(struct notifier_block *nb,
 
 static struct notifier_block dvfs_hotplug = {
 	.notifier_call = hotplug_cpufreq_transition,
+};
+
+static int hotplug_cpufreq_policy(struct notifier_block *this,
+				unsigned long code, void *data)
+{
+	struct cpufreq_policy *policy = data;
+
+	switch (code) {
+	case CPUFREQ_ADJUST:
+		if ((!strnicmp(policy->governor->name, "pegasusq", CPUFREQ_NAME_LEN))
+		|| (!strnicmp(policy->governor->name, "hotplug", CPUFREQ_NAME_LEN))
+		|| (!strnicmp(policy->governor->name, "adaptive", CPUFREQ_NAME_LEN))) {
+			printk("cpufreq governor is changed to %s\n",
+							policy->governor->name);
+			governor_hotplug = true;
+		} else
+			governor_hotplug = false;
+
+	case CPUFREQ_INCOMPATIBLE:
+	case CPUFREQ_NOTIFY:
+	default:
+		break;
+	}
+
+	return NOTIFY_DONE;
+}
+
+static struct notifier_block dvfs_policy = {
+	.notifier_call = hotplug_cpufreq_policy,
 };
 
 static int hotplug_pm_transition(struct notifier_block *nb,
@@ -314,6 +344,9 @@ static int __init exynos4_integrated_dvfs_hotplug_init(void)
 #endif
 
 	register_pm_notifier(&pm_hotplug);
+
+	cpufreq_register_notifier(&dvfs_policy,
+					 CPUFREQ_POLICY_NOTIFIER);
 
 	return cpufreq_register_notifier(&dvfs_hotplug,
 					 CPUFREQ_TRANSITION_NOTIFIER);
