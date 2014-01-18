@@ -2196,13 +2196,6 @@ static void ipc_spi_cfg_gpio(void)
 #endif
 
 #ifdef CONFIG_FB_S5P
-unsigned int lcdtype;
-static int __init lcdtype_setup(char *str)
-{
-	get_option(&str, &lcdtype);
-	return 1;
-}
-__setup("lcdtype=", lcdtype_setup);
 
 #ifdef CONFIG_FB_S5P_LD9040
 unsigned int ld9040_lcdtype;
