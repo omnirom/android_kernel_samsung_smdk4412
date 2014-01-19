@@ -113,6 +113,62 @@ struct s3cfb_chroma {
 	enum		s3cfb_chroma_dir_t dir;
 };
 
+struct s3cfb_lcd_timing {
+	int	h_fp;
+	int	h_bp;
+	int	h_sw;
+	int	v_fp;
+	int	v_fpe;
+	int	v_bp;
+	int	v_bpe;
+	int	v_sw;
+#if defined(CONFIG_FB_S5P_MIPI_DSIM) || defined(CONFIG_S5P_MIPI_DSI2)
+	int	cmd_allow_len;
+	int	stable_vfp;
+	void	(*cfg_gpio)(struct platform_device *dev);
+	int	(*backlight_on)(struct platform_device *dev);
+	int	(*reset_lcd)(struct platform_device *dev);
+#endif
+};
+
+struct s3cfb_lcd_polarity {
+	int rise_vclk;
+	int inv_hsync;
+	int inv_vsync;
+	int inv_vden;
+};
+
+#ifdef CONFIG_FB_S5P_MIPI_DSIM
+/* for CPU Interface */
+struct s3cfb_cpu_timing {
+	unsigned int	cs_setup;
+	unsigned int	wr_setup;
+	unsigned int	wr_act;
+	unsigned int	wr_hold;
+};
+#endif
+
+struct s3cfb_lcd {
+#ifdef CONFIG_FB_S5P_MIPI_DSIM
+	char	*name;
+#endif
+	int	width;
+	int	height;
+	int	p_width;
+	int	p_height;
+	int	bpp;
+	int	freq;
+	int	freq_limit;
+	int	vclk;
+	struct	s3cfb_lcd_timing timing;
+	struct	s3cfb_lcd_polarity polarity;
+#ifdef CONFIG_FB_S5P_MIPI_DSIM
+	struct	s3cfb_cpu_timing cpu_timing;
+#endif
+	void	(*init_ldi)(void);
+	void	(*deinit_ldi)(void);
+};
+
 struct s3cfb_fimd_desc {
 	int			state;
 	int			dual;

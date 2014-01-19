@@ -26,7 +26,4 @@ extern int u1_switch_get_usb_lock_state(void);
 extern struct platform_device s3c_device_cmc732;
 #endif
 
-extern struct platform_device ld9040_spi_gpio;
-void ld9040_fb_init(void);
-
 #endif
