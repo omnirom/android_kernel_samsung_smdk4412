@@ -21,6 +21,8 @@
 #include <linux/delay.h>
 #include <linux/regulator/consumer.h>
 #include <linux/lcd.h>
+#include <linux/spi/spi.h>
+#include <linux/spi/spi_gpio.h>
 
 #include <plat/devs.h>
 #include <plat/fb-s5p.h>
@@ -37,6 +39,8 @@
 #include <linux/mdnie.h>
 #endif
 
+#include "u1.h"
+
 struct s3c_platform_fb fb_platform_data;
 static struct platform_mdnie_data mdnie_data;
 
@@ -52,8 +56,18 @@ static int __init lcdtype_setup(char *str)
 __setup("lcdtype=", lcdtype_setup);
 
 
+
 #ifdef CONFIG_FB_S5P
 #ifdef CONFIG_FB_S5P_LD9040
+unsigned int ld9040_lcdtype;
+static int __init ld9040_lcdtype_setup(char *str)
+{
+	get_option(&str, &ld9040_lcdtype);
+	return 1;
+}
+
+__setup("ld9040.get_lcdtype=0x", ld9040_lcdtype_setup);
+
 static int lcd_cfg_gpio(void)
 {
 	int i, f3_end = 4;
@@ -78,6 +92,21 @@ static int lcd_cfg_gpio(void)
 		s3c_gpio_setpull(EXYNOS4_GPF3(i), S3C_GPIO_PULL_NONE);
 	}
 
+#ifdef MAX_DRVSTR
+	/* drive strength to max */
+	writel(0xffffffff, S5P_VA_GPIO + 0x18c);
+	writel(0xffffffff, S5P_VA_GPIO + 0x1ac);
+	writel(0xffffffff, S5P_VA_GPIO + 0x1cc);
+	writel(readl(S5P_VA_GPIO + 0x1ec) | 0xffffff, S5P_VA_GPIO + 0x1ec);
+#else
+	/* drive strength to 2X */
+	writel(0xaaaaaaaa, S5P_VA_GPIO + 0x18c);
+	writel(0xaaaaaaaa, S5P_VA_GPIO + 0x1ac);
+	writel(0xaaaaaaaa, S5P_VA_GPIO + 0x1cc);
+	writel(readl(S5P_VA_GPIO + 0x1ec) | 0xaaaaaa, S5P_VA_GPIO + 0x1ec);
+#endif
+
+#if !defined(CONFIG_MACH_U1_KOR_LGT)
 	/* MLCD_RST */
 	s3c_gpio_cfgpin(EXYNOS4_GPY4(5), S3C_GPIO_OUTPUT);
 	s3c_gpio_setpull(EXYNOS4_GPY4(5), S3C_GPIO_PULL_NONE);
@@ -85,14 +114,26 @@ static int lcd_cfg_gpio(void)
 	/* LCD_nCS */
 	s3c_gpio_cfgpin(EXYNOS4_GPY4(3), S3C_GPIO_OUTPUT);
 	s3c_gpio_setpull(EXYNOS4_GPY4(3), S3C_GPIO_PULL_NONE);
-
 	/* LCD_SCLK */
 	s3c_gpio_cfgpin(EXYNOS4_GPY3(1), S3C_GPIO_OUTPUT);
 	s3c_gpio_setpull(EXYNOS4_GPY3(1), S3C_GPIO_PULL_NONE);
-
 	/* LCD_SDI */
 	s3c_gpio_cfgpin(EXYNOS4_GPY3(3), S3C_GPIO_OUTPUT);
 	s3c_gpio_setpull(EXYNOS4_GPY3(3), S3C_GPIO_PULL_NONE);
+#else
+	/* MLCD_RST */
+	s3c_gpio_cfgpin(EXYNOS4_GPX1(3), S3C_GPIO_OUTPUT);
+	s3c_gpio_setpull(EXYNOS4_GPX1(3), S3C_GPIO_PULL_NONE);
+	/* LCD_nCS */
+	s3c_gpio_cfgpin(EXYNOS4_GPY0(3), S3C_GPIO_OUTPUT);
+	s3c_gpio_setpull(EXYNOS4_GPY0(3), S3C_GPIO_PULL_NONE);
+	/* LCD_SCLK */
+	s3c_gpio_cfgpin(EXYNOS4210_GPE2(3), S3C_GPIO_OUTPUT);
+	s3c_gpio_setpull(EXYNOS4210_GPE2(3), S3C_GPIO_PULL_NONE);
+	/* LCD_SDI */
+	s3c_gpio_cfgpin(EXYNOS4_GPX1(1), S3C_GPIO_OUTPUT);
+	s3c_gpio_setpull(EXYNOS4_GPX1(1), S3C_GPIO_PULL_NONE);
+#endif
 
 	return 0;
 }
@@ -133,7 +174,11 @@ static int reset_lcd(struct lcd_device *ld)
 	int reset_gpio = -1;
 	int err;
 
+#if !defined(CONFIG_MACH_U1_KOR_LGT)
 	reset_gpio = EXYNOS4_GPY4(5);
+#else
+	reset_gpio = EXYNOS4_GPX1(3);
+#endif
 
 	err = gpio_request(reset_gpio, "MLCD_RST");
 	if (err) {
@@ -144,6 +189,7 @@ static int reset_lcd(struct lcd_device *ld)
 
 	gpio_request(reset_gpio, "MLCD_RST");
 
+	gpio_direction_output(reset_gpio, 1);
 	mdelay(10);
 	gpio_direction_output(reset_gpio, 0);
 	mdelay(10);
@@ -159,7 +205,11 @@ static int lcd_gpio_cfg_earlysuspend(struct lcd_device *ld)
 	int reset_gpio = -1;
 	int err;
 
+#if !defined(CONFIG_MACH_U1_KOR_LGT)
 	reset_gpio = EXYNOS4_GPY4(5);
+#else
+	reset_gpio = EXYNOS4_GPX1(3);
+#endif
 
 	err = gpio_request(reset_gpio, "MLCD_RST");
 	if (err) {
@@ -178,6 +228,7 @@ static int lcd_gpio_cfg_earlysuspend(struct lcd_device *ld)
 
 static int lcd_gpio_cfg_lateresume(struct lcd_device *ld)
 {
+#if !defined(CONFIG_MACH_U1_KOR_LGT)
 	/* MLCD_RST */
 	s3c_gpio_cfgpin(EXYNOS4_GPY4(5), S3C_GPIO_OUTPUT);
 	s3c_gpio_setpull(EXYNOS4_GPY4(5), S3C_GPIO_PULL_NONE);
@@ -185,14 +236,26 @@ static int lcd_gpio_cfg_lateresume(struct lcd_device *ld)
 	/* LCD_nCS */
 	s3c_gpio_cfgpin(EXYNOS4_GPY4(3), S3C_GPIO_OUTPUT);
 	s3c_gpio_setpull(EXYNOS4_GPY4(3), S3C_GPIO_PULL_NONE);
-
 	/* LCD_SCLK */
 	s3c_gpio_cfgpin(EXYNOS4_GPY3(1), S3C_GPIO_OUTPUT);
 	s3c_gpio_setpull(EXYNOS4_GPY3(1), S3C_GPIO_PULL_NONE);
-
 	/* LCD_SDI */
 	s3c_gpio_cfgpin(EXYNOS4_GPY3(3), S3C_GPIO_OUTPUT);
 	s3c_gpio_setpull(EXYNOS4_GPY3(3), S3C_GPIO_PULL_NONE);
+#else
+	/* MLCD_RST */
+	s3c_gpio_cfgpin(EXYNOS4_GPX1(3), S3C_GPIO_OUTPUT);
+	s3c_gpio_setpull(EXYNOS4_GPX1(3), S3C_GPIO_PULL_NONE);
+	/* LCD_nCS */
+	s3c_gpio_cfgpin(EXYNOS4_GPY0(3), S3C_GPIO_OUTPUT);
+	s3c_gpio_setpull(EXYNOS4_GPY0(3), S3C_GPIO_PULL_NONE);
+	/* LCD_SCLK */
+	s3c_gpio_cfgpin(EXYNOS4210_GPE2(3), S3C_GPIO_OUTPUT);
+	s3c_gpio_setpull(EXYNOS4210_GPE2(3), S3C_GPIO_PULL_NONE);
+	/* LCD_SDI */
+	s3c_gpio_cfgpin(EXYNOS4_GPX1(1), S3C_GPIO_OUTPUT);
+	s3c_gpio_setpull(EXYNOS4_GPX1(1), S3C_GPIO_PULL_NONE);
+#endif
 
 	return 0;
 }
@@ -239,7 +302,11 @@ static struct lcd_platform_data ld9040_platform_data = {
 };
 
 #define LCD_BUS_NUM	3
+#if !defined(CONFIG_MACH_U1_KOR_LGT)
 #define DISPLAY_CS	EXYNOS4_GPY4(3)
+#else
+#define DISPLAY_CS	EXYNOS4_GPY0(3)
+#endif
 static struct spi_board_info spi_board_info[] __initdata = {
 	{
 		.max_speed_hz = 1200000,
@@ -250,8 +317,13 @@ static struct spi_board_info spi_board_info[] __initdata = {
 	},
 };
 
+#if !defined(CONFIG_MACH_U1_KOR_LGT)
 #define DISPLAY_CLK	EXYNOS4_GPY3(1)
 #define DISPLAY_SI	EXYNOS4_GPY3(3)
+#else
+#define DISPLAY_CLK	EXYNOS4210_GPE2(3)
+#define DISPLAY_SI	EXYNOS4_GPX1(1)
+#endif
 static struct spi_gpio_platform_data lcd_spi_gpio_data = {
 	.sck = DISPLAY_CLK,
 	.mosi = DISPLAY_SI,
@@ -259,7 +331,7 @@ static struct spi_gpio_platform_data lcd_spi_gpio_data = {
 	.num_chipselect = 1,
 };
 
-static struct platform_device ld9040_spi_gpio = {
+struct platform_device ld9040_spi_gpio = {
 	.name = "spi_gpio",
 	.id = LCD_BUS_NUM,
 	.dev = {
@@ -312,14 +384,25 @@ void __init ld9040_fb_init(void)
 	strcpy(spi_board_info[0].modalias, "ld9040");
 	spi_board_info[0].platform_data = (void *)&ld9040_platform_data;
 
+	lcdtype = max(ld9040_lcdtype, lcdtype);
+
+#if !defined(CONFIG_PANEL_U1_NA_SPR) && !defined(CONFIG_MACH_U1_NA_USCC)
+	if (lcdtype == LCDTYPE_SM2_A2)
+		ld9040_platform_data.pdata = &u1_panel_data_a2;
+	else if (lcdtype == LCDTYPE_M2)
+		ld9040_platform_data.pdata = &u1_panel_data_m2;
+#endif
+
 	pdata = ld9040_platform_data.pdata;
 	pdata->ops = &ops;
+
+	printk(KERN_INFO "%s :: lcdtype=%d\n", __func__, lcdtype);
 
 	spi_register_board_info(spi_board_info, ARRAY_SIZE(spi_board_info));
 
 	if (!ld9040_platform_data.lcd_enabled)
 		lcd_cfg_gpio();
-	/*s3cfb_set_platdata(&fb_platform_data);*/
+	s3cfb_set_platdata(&fb_platform_data);
 }
 #endif
 

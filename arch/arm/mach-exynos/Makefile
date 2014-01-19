@@ -180,6 +180,7 @@ obj-$(CONFIG_MIDAS_COMMON)		+= sec-common.o board-gps-bcm475x.o \
 					   midas-camera.o midas-thermistor.o \
 					   midas-mhl.o midas-sound.o
 obj-$(CONFIG_FB_S5P_MIPI_DSIM)		+= board-lcd-mipi.o
+obj-$(CONFIG_FB_S5P_LD9040)			+= board-lcd-rgb.o
 endif
 endif
 endif
