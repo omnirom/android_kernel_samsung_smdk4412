@@ -286,7 +286,6 @@ static struct s3cfb_lcd panel_data = {
 	},
 };
 
-struct ld9040_panel_data s2plus_panel_data;
 static struct lcd_platform_data ld9040_platform_data = {
 	.reset = reset_lcd,
 	.power_on = lcd_power_on,
@@ -298,7 +297,7 @@ static struct lcd_platform_data ld9040_platform_data = {
 	.power_on_delay = 20,	 /* 20ms */
 	.power_off_delay = 200, /* 200ms */
 	.sleep_in_delay = 160,
-	.pdata = &s2plus_panel_data,
+	.pdata = &u1_panel_data,
 };
 
 #define LCD_BUS_NUM	3
