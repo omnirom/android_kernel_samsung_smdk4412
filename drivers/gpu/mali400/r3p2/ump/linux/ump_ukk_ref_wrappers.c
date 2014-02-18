@@ -21,6 +21,8 @@
 #include "ump_ukk.h"
 #include "ump_kernel_common.h"
 
+#undef CONFIG_DMA_SHARED_BUFFER
+
 /* MALI_SEC */
 #if defined(CONFIG_ION_EXYNOS) || defined(CONFIG_DMA_SHARED_BUFFER)
 #include <linux/scatterlist.h>
@@ -98,6 +100,9 @@ int ump_allocate_wrapper(u32 __user * argument, struct ump_session_data  * sessi
  */
 int ump_ion_import_wrapper(u32 __user * argument, struct ump_session_data  * session_data)
 {
+	return -ENOMEM;
+
+#if 0
 	_ump_uk_ion_import_s user_interaction;
 	ump_dd_handle *ump_handle;
 	ump_dd_physical_block * blocks;
@@ -194,6 +199,7 @@ int ump_ion_import_wrapper(u32 __user * argument, struct ump_session_data  * ses
 		return -EFAULT;
 	}
 	return 0; /* success */
+#endif
 }
 #endif
 

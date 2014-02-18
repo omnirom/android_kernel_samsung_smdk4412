@@ -35,6 +35,8 @@
 #include "ump_ukk_wrappers.h"
 #include "ump_ukk_ref_wrappers.h"
 
+#undef CONFIG_DMA_SHARED_BUFFER
+
 /* MALI_SEC */
 #ifdef CONFIG_ION_EXYNOS
 #include <linux/ion.h>
