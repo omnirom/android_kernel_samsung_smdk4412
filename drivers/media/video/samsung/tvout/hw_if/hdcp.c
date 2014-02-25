@@ -281,14 +281,19 @@ static int s5p_ddc_remove(struct i2c_client *client)
 	return 0;
 }
 
-static int s5p_ddc_suspend(struct i2c_client *cl, pm_message_t mesg)
+static int s5p_ddc_suspend(struct device *dev)
 {
 	return 0;
 };
 
-static int s5p_ddc_resume(struct i2c_client *cl)
+static int s5p_ddc_resume(struct device *dev)
 {
 	return 0;
+};
+
+static const struct dev_pm_ops s5p_ddc_pm_ops = {
+    .suspend = s5p_ddc_suspend,
+    .resume = s5p_ddc_resume,
 };
 
 static struct i2c_device_id ddc_idtable[] = {
@@ -300,12 +305,11 @@ static struct i2c_driver ddc_driver = {
 	.driver = {
 		.name = "s5p_ddc",
 		.owner = THIS_MODULE,
+        .pm = &s5p_ddc_pm_ops,
 	},
 	.id_table	= ddc_idtable,
 	.probe		= s5p_ddc_probe,
 	.remove		= __devexit_p(s5p_ddc_remove),
-	.suspend	= s5p_ddc_suspend,
-	.resume		= s5p_ddc_resume,
 };
 
 static int __init s5p_ddc_init(void)
