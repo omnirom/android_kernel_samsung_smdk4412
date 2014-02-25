@@ -391,19 +391,24 @@ err_free_mem:
 
 }
 
-static int isa1200_vibrator_suspend(struct i2c_client *client, pm_message_t mesg)
+static int isa1200_vibrator_suspend(struct device *dev)
 {
-	struct isa1200_vibrator_drvdata *ddata  = i2c_get_clientdata(client);
+	struct isa1200_vibrator_drvdata *ddata  = dev_get_drvdata(dev);
 	ddata->gpio_en(false);
 	return 0;
 }
 
-static int isa1200_vibrator_resume(struct i2c_client *client)
+static int isa1200_vibrator_resume(struct device *dev)
 {
-	struct isa1200_vibrator_drvdata *ddata  = i2c_get_clientdata(client);
+	struct isa1200_vibrator_drvdata *ddata  = dev_get_drvdata(dev);
 	isa1200_vibrator_hw_init(ddata);
 	return 0;
 }
+
+static const struct dev_pm_ops isa1200_vibrator_pm_ops = {
+    .suspend = isa1200_vibrator_suspend,
+    .resume = isa1200_vibrator_resume,
+};
 
 static const struct i2c_device_id isa1200_vibrator_device_id[] = {
 	{"isa1200_vibrator", 0},
@@ -415,11 +420,10 @@ static struct i2c_driver isa1200_vibrator_i2c_driver = {
 	.driver = {
 		.name = "isa1200_vibrator",
 		.owner = THIS_MODULE,
+        .pm = &isa1200_vibrator_pm_ops,
 	},
 	.probe     = isa1200_vibrator_i2c_probe,
 	.id_table  = isa1200_vibrator_device_id,
-	.suspend	= isa1200_vibrator_suspend,
-	.resume	= isa1200_vibrator_resume,
 };
 
 static int __init isa1200_vibrator_init(void)
