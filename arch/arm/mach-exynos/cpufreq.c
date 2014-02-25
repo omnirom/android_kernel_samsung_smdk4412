@@ -729,6 +729,14 @@ static int exynos_cpufreq_cpu_init(struct cpufreq_policy *policy)
 		cpumask_setall(policy->cpus);
 	}
 
+	/* safe default startup limits */
+	policy->min = 200000;
+
+	if (samsung_rev() >= EXYNOS4412_REV_2_0)
+		policy->max = 1600000;
+	else
+		policy->max = 1400000;
+
 	return cpufreq_frequency_table_cpuinfo(policy, exynos_info->freq_table);
 }
 
@@ -749,11 +757,6 @@ static struct notifier_block exynos_cpufreq_reboot_notifier = {
 	.notifier_call = exynos_cpufreq_reboot_notifier_call,
 };
 
-static struct freq_attr *exynos_cpufreq_attr[] = {
-	&cpufreq_freq_attr_scaling_available_freqs,
-	NULL,
-};
-
 static struct cpufreq_driver exynos_driver = {
 	.flags		= CPUFREQ_STICKY,
 	.verify		= exynos_verify_speed,
@@ -765,7 +768,6 @@ static struct cpufreq_driver exynos_driver = {
 	.suspend	= exynos_cpufreq_suspend,
 	.resume		= exynos_cpufreq_resume,
 #endif
-	.attr		= exynos_cpufreq_attr,
 };
 
 static int __init exynos_cpufreq_init(void)
