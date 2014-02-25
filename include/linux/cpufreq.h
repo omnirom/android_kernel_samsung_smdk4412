@@ -23,7 +23,7 @@
 #include <asm/div64.h>
 
 #define CPUFREQ_NAME_LEN 16
-
+#define CPUFREQ_LEVEL_END (L14 + 1)
 
 /*********************************************************************
  *                     CPUFREQ NOTIFIER INTERFACE                    *
