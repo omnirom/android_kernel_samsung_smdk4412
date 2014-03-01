@@ -31,6 +31,8 @@
 #include <linux/slab.h>
 #include <plat/gpio-cfg.h>
 
+#define SMB347_DIVISOR 17647
+
 /* Slave address */
 #define SMB347_SLAVE_ADDR		0x0C
 
@@ -210,8 +212,8 @@ static void smb347_charger_init(struct smb347_chg_data *chg)
 	/*  : USB5/1/HC Input state - Tri-state Input */
 	smb347_i2c_write(chg->client, SMB347_PIN_ENABLE_CONTROL, 0x00);
 
-	/* Input current limit : DCIN 1800mA, USBIN HC 1800mA */
-	smb347_i2c_write(chg->client, SMB347_INPUT_CURRENTLIMIT, 0x66);
+	/* Input current limit : DCIN 1900mA, USBIN HC 1900mA */
+	smb347_i2c_write(chg->client, SMB347_INPUT_CURRENTLIMIT, (u8) ((1900*1000)/ SMB347_DIVISOR)); //about 1900mA
 
 	/* Various func. : USBIN primary input, VCHG func. enable */
 	smb347_i2c_write(chg->client, SMB347_VARIOUS_FUNCTIONS, 0xA7);
@@ -302,14 +304,14 @@ static void smb347_set_charging_state(int enable, int charging_mode)
 
 		switch (charging_mode) {
 		case CABLE_TYPE_TA:
-			/* Input current limit : DCIN 1800mA, USBIN HC 1800mA */
+			/* Input current limit : DCIN 1900mA, USBIN HC 1900mA */
 			smb347_i2c_write(chg->client,
-				SMB347_INPUT_CURRENTLIMIT, 0x66);
+				SMB347_INPUT_CURRENTLIMIT, (u8) ((1900*1000)/ SMB347_DIVISOR)); // about 1900mA
 
 			/* CommandB : High-current mode */
 			smb347_i2c_write(chg->client, SMB347_COMMAND_B, 0x03);
 
-			pr_info("%s : 1.8A charging enable\n", __func__);
+			pr_info("%s : 1.9A charging enable\n", __func__);
 			break;
 		case CABLE_TYPE_DESKDOCK:
 			/* Input current limit : DCIN 1500mA, USBIN HC 1500mA */
@@ -322,8 +324,15 @@ static void smb347_set_charging_state(int enable, int charging_mode)
 			break;
 		case CABLE_TYPE_USB:
 			/* CommandB : USB5 */
-			smb347_i2c_write(chg->client, SMB347_COMMAND_B, 0x02);
-			pr_info("%s : LOW(USB5) charging enable\n", __func__);
+			/*smb347_i2c_write(chg->client, SMB347_COMMAND_B, 0x02);
+			pr_info("%s : LOW(USB5) charging enable\n", __func__);*/
+			smb347_i2c_write(chg->client,
+				SMB347_INPUT_CURRENTLIMIT, (u8) ((1500*1000)/ SMB347_DIVISOR)); // about 1500mA
+
+			/* CommandB : High-current mode */
+			smb347_i2c_write(chg->client, SMB347_COMMAND_B, 0x03);
+
+			pr_info("%s : 1.5A charging enable from usb\n", __func__);
 			break;
 		default:
 			/* CommandB : USB1 */
