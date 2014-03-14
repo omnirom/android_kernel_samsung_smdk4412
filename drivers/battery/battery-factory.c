@@ -258,8 +258,6 @@ static ssize_t factory_show_property(struct device *dev,
 		i += scnprintf(buf + i, PAGE_SIZE - i, "%d\n", val);
 		break;
 	case BATT_VOL_ADC:
-		i += scnprintf(buf + i, PAGE_SIZE - i, "N/A\n");
-		break;
 	case BATT_VOL_ADC_CAL:
 #if defined(CONFIG_MACH_KONA)
 		/* For using compensation 1% value */
