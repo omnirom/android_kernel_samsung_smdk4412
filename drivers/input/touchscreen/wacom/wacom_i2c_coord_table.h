@@ -38,6 +38,10 @@
 
 #endif
 
+#if defined (CONFIG_MACH_P4NOTE)
+#include "table-p4note.h"
+short origin_offset[] = {50, 10};
+#endif
 
 /* Origin Shift */
 #if defined(CONFIG_MACH_Q1_BD)
@@ -46,6 +50,7 @@ short origin_offset_48[] = {720, 760};
 #elif defined(CONFIG_MACH_T0)
 short origin_offset[] = {676, 724};
 #endif
+
 
 /* Distance Offset Table */
 short *tableX[MAX_HAND][MAX_ROTATION] = \
