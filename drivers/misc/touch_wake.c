@@ -229,7 +229,7 @@ static ssize_t touchwake_delay_write(struct device * dev, struct device_attribut
 	if(sscanf(buf, "%u\n", &data) == 1) {
 		touchoff_delay = data;
 		#ifdef DEBUG_PRINT
-		pr_info("[TOUCHWAKE] Delay set to %u\n", touchoff_delay); 
+		pr_info("[TOUCHWAKE] Delay set to %u\n", touchoff_delay);
 		#endif
 	#ifdef DEBUG_PRINT
 	} else 	{
@@ -282,7 +282,7 @@ static struct miscdevice touchwake_device =
 };
 
 void proximity_detected(void)
-{   
+{
 	prox_near = true;
 	#ifdef DEBUG_PRINT
 	pr_info("[TOUCHWAKE] Proximity enabled\n");
@@ -293,7 +293,7 @@ void proximity_detected(void)
 EXPORT_SYMBOL(proximity_detected);
 
 void proximity_off(void)
-{   
+{
 	prox_near = false;
 	#ifdef DEBUG_PRINT
 	pr_info("[TOUCHWAKE] Proximity disabled\n");
@@ -346,7 +346,7 @@ void powerkey_released(void)
 EXPORT_SYMBOL(powerkey_released);
 
 void touch_press(void)
-{   
+{
 	#ifdef DEBUG_PRINT
 	pr_info("[TOUCHWAKE] Touch press detected\n");
 	#endif
@@ -359,7 +359,7 @@ void touch_press(void)
 EXPORT_SYMBOL(touch_press);
 
 void set_powerkeydev(struct input_dev * input_device)
-{   
+{
 	#ifdef DEBUG_PRINT
 	pr_info("[TOUCHWAKE] Powerkey device set to: %p\n", input_device);
 	#endif
