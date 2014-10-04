@@ -18,6 +18,7 @@ config ARCH_EXYNOS4
 	select ARM_ERRATA_743622
 	select ARM_ERRATA_751472
 	select ARM_ERRATA_754322
+	select ARM_ERRATA_761320 if SMP
 	select ARM_ERRATA_764369
 	help
 	  Samsung EXYNOS4 series based systems
@@ -50,7 +51,6 @@ config CPU_EXYNOS4212
 config CPU_EXYNOS4412
 	bool
 	select S3C_PL330_DMA
-	select ARM_ERRATA_761320
 	help
 	  Enable EXYNOS4412 CPU support
 
