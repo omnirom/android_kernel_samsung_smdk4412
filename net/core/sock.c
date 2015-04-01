@@ -1381,9 +1381,12 @@ int sock_i_uid(struct sock *sk)
 {
 	int uid;
 
-	read_lock_bh(&sk->sk_callback_lock);
-	uid = sk->sk_socket ? SOCK_INODE(sk->sk_socket)->i_uid : 0;
-	read_unlock_bh(&sk->sk_callback_lock);
+	if(sk){
+		read_lock_bh(&sk->sk_callback_lock);
+		uid = sk->sk_socket ? SOCK_INODE(sk->sk_socket)->i_uid : 0;
+		read_unlock_bh(&sk->sk_callback_lock);
+	}
+	else uid=0;
 	return uid;
 }
 EXPORT_SYMBOL(sock_i_uid);
