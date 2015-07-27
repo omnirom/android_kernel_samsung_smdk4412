@@ -44,7 +44,6 @@ MALI_PLATFORM_FILES = $(subst $(srctree)/$(src)/,,$(wildcard $(srctree)/$(src)/p
 # For customer releases the Linux Device Drivers will be provided as ARM proprietary and GPL releases:
 # The ARM proprietary product will only include the license/proprietary directory
 # The GPL product will only include the license/gpl directory
-$(warning Current directory is $(srctree)/$(src) from $(shell pwd))
 ifeq ($(wildcard $(srctree)/$(src)/linux/license/gpl/*),)
     ccflags-y += -I$(srctree)/$(src)/linux/license/proprietary
     ifeq ($(CONFIG_MALI400_PROFILING),y)
